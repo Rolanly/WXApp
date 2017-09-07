@@ -1,2 +1,418 @@
 # WXApp
-小程序跳坑全集
+
+# 微信小程序常见错误及基本排除方法
+
+## 在wxml文件中使用text标签时内容不能与标题对齐的问题
+
+```objetive-c
+  <view class="mod t-sign-time">
+          <text>商品条码</text>
+          <text class="value">
+          67882932222222222</text>
+  </view>
+```
+微信编译器识别到text中含有空行导致。修改如下:
+
+```objetive-c
+  <view class="mod t-sign-time">
+          <text>商品条码</text>
+          <text class="value">67882932222222222r33ddfdfdfdf</text>
+ </view>
+```
+
+## 文本无法居中
+
+当设置display为inline-block时，遇到文本内容设置text-align: center始终无法居中的问题。虽然设置display: flex可以解决文本居中的问题，但整体View上的多个控件布局会乱。最后设置，
+
+```
+line-height: 31px;
+```
+解决问题。(其中，31px为该视图控件的高度。) 通过设置line-height确定了显示文本内容的行高。
+
+## justify-content属性
+
+当一个视图上有多个控件，且这些控件处在一行时。使用justify-content可以很方便的控制这些控件的对齐方式，间距等样式。
+
+.wxml
+
+```
+ <view class="drawer_title">
+     <view class="btn_cancel" bindtap="powerDrawer" data-statu="close">取消</view>
+     <text>剂型选择</text>
+     <view class="btn_sure" bindtap="powerDrawer" data-statu="close">确定</view>
+  </view>  
+```
+
+.wxss
+
+```
+.drawer_title{  
+  padding:15px;  
+  font: 10px;  
+  justify-content: space-between;
+  border-bottom: 1px solid #E8E8EA; 
+  flex-direction: row;
+  display: flex;
+}  
+```
+其中，justify-content: space-between为等间距，justify-content: space-around为平分间距。
+
+## 小程序中的循环列表，在点击时改变当前项的背景颜色
+.wxml
+
+```
+  <view class="drawer_content">
+     <block wx:for="{{['注射剂1', '注射剂2', '注射剂3', '注射剂4', '注射剂', '注射剂', '注射剂','注射剂', '注射剂', '注射剂', '注射剂', '注射剂', '注射剂', '注射剂']}}">
+        <text data-index="{{index}}" class="view-list {{index ==activeItemIndex ? 'active':''}}" bindtap="formTapClick">{{item}}</text>
+     </block>
+  </view>  
+
+```
+其中，默认未选中的样式为view-list，需要在class中默认写上。即，
+
+```
+class="view-list {{index ==activeItemIndex ? 'active':''}}"
+```
+active为选中时改变背景需要调用的样式。
+
+### 参考资料
+
+[小程序中的循环列表，在点击时改变当前项的背景颜色](http://www.wxapp-union.com/portal.php?mod=view&aid=1509)
+
+## 初始状态的属性名称相同导致同时加载两个页面视图
+
+```
+<view class="drawer_screen" bindtap="powerDrawer" data-statu="close" wx:if="{{showModalStatus1}}"></view>
+```
+其中，showModalStatus1与另一个名称为showModalStatus的属性值冲突。
+
+## 操作按钮悬浮固定在底部
+
+以收货地址为例，将添加地址按钮悬浮于最底部，这样再多的地址，也不会被遮挡而看不见。常见的有加入购物车按钮、结算按钮、收货列表添加地址按钮。
+
+核心代码，如下:
+
+```
+<button bindtap=add type=primary class=address-add>添加button>
+/*添加地址按钮*/
+.address-add {
+    position: fixed;
+    bottom: 0;
+    width: 100%;
+}
+```
+考虑到按钮自身占据46px高度，因此地址列表还需要加上如下样式:
+
+```
+/*地址列表包装容器*/
+.address-list {
+    margin-bottom: 46px;
+}
+```
+
+
+## 页面滚动范围设置
+
+页面底部一个操作按钮，按钮上面是一个列表。为了在滚动列表时，底部按钮固定不动，需要设置页面的滚动范围。
+
+.wxml文件:
+
+```
+<view class="page">
+   <view class="useWrap" style="height:{{winHeight-60}}px;overflow:hidden;">
+       <view  style="height:{{winHeight-60}}px;overflow:scroll;">
+         <view data-index="{{index}}" class="mod t-sign-time" wx:for="{{classifyList}}" bindtap="selectedTap">
+         <text data-index="{{index}}" class="content" bindtap="selectedTap">{{item}}</text>
+         <image class="normal {{index == activeItemIndex ? 'selecteIcon':'unselecteIcon'}}" src="/image/selected.png" mode="center"></image>  
+         </view> 
+      </view>   
+   </view>
+</view>
+<button class="sureBtn" bindtap="sureBtnClick">确定</button>
+
+```
+
+其中，
+
+```
+ <view class="useWrap" style="height:{{winHeight-60}}px;overflow:hidden;">
+```
+和
+
+```
+<view  style="height:{{winHeight-60}}px;overflow:scroll;">
+```
+即为设置的滚动范围，
+
+```
+height:{{winHeight-60}}
+```
+是为了减去距离底部固定按钮的高度，在此范围进行滚动。
+
+其中winHeight为在.js中获取到的当前屏幕的高度。
+```
+onLoad: function (e) {
+    var _this = this;
+    //获取屏幕高度
+    wx.getSystemInfo({
+      success: function (res) {
+        _this.setData({
+          winWidth: res.windowWidth,
+          winHeight: res.windowHeight
+        })
+      }
+    })
+},
+```
+## 动态的显示或隐藏控件(自定义单项选择样式)
+
+显示控件调用.selecteIcon，隐藏控件调用.unselecteIcon。通过属性display来控制。
+
+.wxss中的样式如下:
+
+```
+/* 选中 */
+.selecteIcon {
+  display: block;
+  width: 20px;
+  height: 25px;
+  margin-right: 30px;
+}
+
+/* 未选中 */
+.unselecteIcon {
+  display: none;
+  width: 20px;
+  height: 25px;
+}
+```
+
+在初始状态下，需要给控件一个初始样式，
+
+```
+/* 初始样式 */
+.normal {
+  width: 20px;
+  height: 25px;
+}
+```
+
+在点击时选中当前行，需要进行进行判断，通过数组的index确定当前行是否被选中，被选中即为activeItemIndex，.wxml代码如下，
+
+```
+<image class="normal {{index == activeItemIndex ? 'selecteIcon':'unselecteIcon'}}" src="/image/selected.png" mode="center"></image>  
+```
+这种样式写法，也可用于自定义单选样式。
+### 参考资料
+
+[动态的显示或隐藏控件](http://www.wxapp-union.com/portal.php?mod=view&aid=1261)
+
+## 反向传值
+
+有两个页面，这里定为页面A和页面B。点击页面A跳转至页面B，页面B中有一个确定按钮，需要在点击按钮时，将页面B中的某个数据传递给页面A。这里通过从页面路由栈中直接获取和操作目标Page对象。
+
+这种方式，是通过调用小程序的API: getCurrentPages()，来获取当前页面路由栈的信息，这个路由栈中按照页面的路由顺序存放着相应的Page对象，我们可以很容易的获取到上一级页面的完整Page对象，从而使直接调用Page对象的属性和方法成为可能。
+
+在页面B中的js文件中触发确定按钮的tap方法，并返回页面A,
+
+```
+  /**
+   * 点击确定按钮
+   */
+  sureBtnClick: function () {
+    var that=this;
+    var pages = getCurrentPages();
+    var currPage = pages[pages.length - 1];   //当前页面
+    var prevPage = pages[pages.length - 2];  //上一个页面
+    //直接调用上一个页面的setData()方法，把数据存到上一个页面中去
+    prevPage.setData({
+      mydata: that.data.a,
+    })
+
+    wx.navigateBack({
+
+    })
+ }
+```
+页面中只需要在对应的.wxml文件中调用{{mydata}}即可获取页面B中回传的值。
+
+### 参考资料
+
+[微信小程序从子页面退回父页面时的数据传递](http://www.jianshu.com/p/aa8254b23847)
+
+## bindtap事件传递
+
+```
+data.currentTarget.dataset.index
+```
+与
+
+```
+data.target.dataset.index
+```
+的区别:
+
+target 触发事件的源组件，currentTarget 事件绑定的当前组件。如果你在父容器上绑定了事件并传参，当你点击父容器时，事件绑定的组件和触发事件的源组件是同一个元素，所以currentTarget 、target 都可以拿到参数，但是当你点击子元素时，target 就不是事件绑定的组件了，所以拿不到参数。
+ 
+由于事件冒泡的机制，父容器上绑定的事件依然可以触发，所以currentTarget 依然可以拿到参数。
+
+举个例子，
+
+view标签 加 bindtap事件，用data-name传值，如果view中只有文字，点击整个view区域都可以接收到data-name的值，如果view里面加一个lable标签，那么点击lable包裹的区域，data-name取不到值。  
+
+解决方法：把取值方式  由e.target.dataset.carrierName  修改为e.currentTarget.dataset.carrierName即可！
+
+## 请求接口后使用that.setData无法为变量赋值
+
+在页面的.js文件中的Page方法中为变量赋值，如下：
+
+```
+Page({
+
+  /**
+   * 页面的初始数据
+   */
+  data: {
+      medicineId:null,
+      medicineType:null,
+
+      commodity_name: '',
+      commodity_code: '',
+      medicinal_formId:'',
+      specifcations:'',
+      factory:'',
+      direction:'',
+      approval_num:'',
+      categoryLabel:''   
+  },
+
+```
+之后在请求接口成功后，给变量赋值:
+
+```
+success: function(res) {
+         console.log('GetMedicinalInfoUrl res = ',res.data);
+
+         that.setData({
+           commodity_name: res.data.data.commodity_name,
+           commodity_code: res.data.data.commodity_code,
+           medicinal_formId: res.data.data.medicinal_form_id,
+           specifcations: res.data.data.specifcations,
+           factory: res.data.data.factory,
+           direction: res.data.data.direction,
+           approval_num: res.data.data.approval_num,
+           categoryLabel: res.data.category_label
+         });
+       },
+```
+
+发现日志一直会报"can not find variate commodity_name"，并且无法赋值。经过一番周折，试着将所有带下划线的变量名使用驼峰式命名，就可以正常赋值了。看来小程序不支持下划线命名。
+
+## 在编辑完文件后忘记保存文件，导致运行时没有实际改变的问题。
+
+## 切换不同Ip的调试环境
+
+在调试接口时往往需要连接不同端口的IP，这里就需要设置一种可以灵活切换IP的方式。所有，在项目中引入了名为requestUrl.js的文件，在该文件中配置不同的Ip。
+
+```
+var ApiRootUrl = 'http://192.168.10.11:8038'
+module.exports = {
+   RequestUrl1: ApiRootUrl + 'a/b',
+   RequestUrl2: ApiRootUrl + 'c/d',
+   RequestUrl3: ApiRootUrl + 'e/f',
+   RequestUrl4: ApiRootUrl + 'g/h',
+};
+```
+其中，变量ApiRootUrl为需要单独配置的用于切换的不同Ip。module.exports里为声明的，根据ApiRootUrl和访问路径拼接而成的url。
+
+使用时需要在调用的.js文件中引入requestUrl.js文件:
+
+```
+const requestUrl = require('../../config/requestUrl.js');
+```
+
+在请求接口的request方法的url参数中，调用常量requestUrl，
+
+```
+wx.request({
+   url: requestUrl. RequestUrl1,
+})
+```
+### 特别提醒
+
+这里的requestUrl.js文件是放在与pages目录平级的目录config下的。因此，当在pages目录下引入时，引入路径设置为:
+
+```
+const requestUrl = require('../../config/requestUrl.js');
+```
+
+若此时pages目录下，需要访问requestUrl.js的页面又放在了另外一个目录下，则需要再原来基础之上，再引入一层，引入路径设置为:
+
+```
+const requestUrl = require('../../../config/requestUrl.js');
+```
+
+## JS判断字符串是否包含某个字符
+
+```
+var tempString = "text";
+if (tempString.indexOf("xt") >= 0) {
+    // 包含某个字符
+}
+```
+若包含则返回大于等于0的整数值，若不包含则返回-1。
+
+## App()函数
+
+App()函数用来注册一个小程序。接受一个object参数，其指定小程序的生命周期函数等。
+
+生命周期函数:
+
+> onLaunch 监听小程序初始化，当小程序初始化完成时，会触发onLaunch(全局只触发一次)
+
+> onShow 监听小程序显示，当小程序启动，或从后台进入前台显示，会触发onShow
+ 
+> onHide 监听小程序隐藏，当小程序从前台进入后台，会触发onHide
+
+需要注意App()函数与Page()函数的区别。
+
+
+
+也接触了不少人解决问题的过程里，有一些比较难以排查的可能性列举在这，方便大家看一下：
+
+特别提示：为了排除问题所在，建议针对问题制作最简demo，以便最小化缩小其他内容或代码对问题的影响范围。
+
+1：ES6；使用es6可能导致安卓端真机调试时很多问题出现，还有其他未知问题；原因未知；
+
+2：字母拼错，包括字母拼写错误，大小写没有注意；微信小程序中，有大量这样的代码示例，从中间冒出一个大写，比如支付中的appId 比如微信官方的分享示例代码就是有误的。。。
+
+3：官方文档示例代码有误，有时官方文档示例代码也会出现问题，比如大小写出错，或者其他缺少参数等问题；
+
+4：https，这个坑目前遇到的人最多，首先说明一下，工具的这个设置，[图片上传中。。。（2）]
+，这个设置有一些独特的作用，让你可以让本地避开一些限制；但是这个设置对真机无效，所以假如存在https问题，是否勾选并影响；仍然需要按贴排查：http://www.wxapp-union.com/forum.php?mod=viewthread&tid=648
+
+5：官方BUG，你遇到的问题可能是官方仍未解决的bug，具体可以参考官方文档FAQ文档地址
+
+6：官方文档；官方文档是解决问题的不二之选，建议在解决问题时，不断的看官方文档，并且仔细看，尽量从官方文档中找出解决方案；
+
+7：调试工具：官方开发者工具及手机端，都提供了调试工具，基本跟原本大家常用的调试工具相差无几，可用利用调试工具多做各种调试，以免排查问题；调试方法，新手可以搜索网上相关firebug教程或浏览器调试教程或调试教程；
+
+8：重启大法：有时候编辑器会出现一些莫名其妙的BUG，比如昨天还是好的，今天打开各种问题等等，可以考虑重新编译或多次重启工具或重启电脑；
+
+9：新手跳坑；我们为新手准备了很多常见的问题，http://www.wxapp-union.com/forum.php?mod=forumdisplay&fid=2&filter=typeid&typeid=3
+
+10：前人经验：有很多人遇到了很多问题，你可以在版块的问答分类下看看其他人遇到的问题及如此解决的；http://www.wxapp-union.com/forum.php?mod=forumdisplay&fid=2&page=2&filter=author&orderby=dateline&typeid=16
+
+11：无法登陆：参考@M-信念 同学的建议：可以稍微等等；当出现帐号登陆问题时，可以尝试使用他人微信号，或是咨询其他人是否也遇到了相同的情况，不要着急；
+
+12：代理设置；代理设置应该是一个隐藏比较深的坑，但是很多人被坑过，假如你的机器设置了代理，开发者工具可能会也跟着默认带来代理，然后会接踵而来很多登陆，空白等问题；
+
+
+13：使用搜索；现在本站及官方均聚合了大量的微信小程序相关内容，可以考虑使用其中的搜索，来获取自己想找的东西或用于解决问题，搜索时，请使用主要关键词，或相近关键词进行搜索，而不要直接搜索一句话，比如你需要appid，你可以搜索“appid”，你遇到了登陆问题，应该搜索“登陆”，真机预览遇到了问题，可以搜索“真机”，遇到了上传问题，可以搜索“uploadfile”
+
+14：微信版本问题，伴随微信的版本更新，不同的微信版本之间可能会出现不同的未知BUG；你可以在weixin.qq.com内查看最新版本。
+
+15：微信缓存；微信缓存会导致很多未知的bug，目前发现的有无法真机预览，以及跳出错误：需要清除应用缓存，或者使用第二部手机进行测试方可排除此问题；On PageReady can not find XXXXXX, app service not ready
+
+16：使用了非官方提供的方法；使用了部分非官方提供的方法比如Object.assign，可能会导致未知的问题，建议优先使用官方组件来实现；
+
